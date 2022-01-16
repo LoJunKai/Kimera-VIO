@@ -11,22 +11,29 @@ ENV DIRPATH /root
 WORKDIR $DIRPATH
 
 #Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
-RUN apt-get update && apt-get install -y git cmake
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      apt-utils \
+      git \
+      cmake \
+      # Install xvfb to provide a display to container for GUI related testing.
+      xvfb \
+      # Install GTSAM
+      libboost-all-dev \
+      # For git authentication
+      ca-certificates
 
-# Install xvfb to provide a display to container for GUI related testing.
-RUN apt-get update && apt-get install -y xvfb
-
-# Install GTSAM
-RUN apt-get update && apt-get install -y libboost-all-dev
 ADD https://api.github.com/repos/borglab/gtsam/git/refs/heads/master version.json
 RUN git clone https://github.com/borglab/gtsam.git
 RUN cd gtsam && \
-    git fetch && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DGTSAM_BUILD_TESTS=OFF -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF -DCMAKE_BUILD_TYPE=Release -DGTSAM_BUILD_UNSTABLE=ON -DGTSAM_TANGENT_PREINTEGRATION=OFF .. && \
-    make -j$(nproc) install
+      git fetch && \
+      mkdir build && \
+      cd build && \
+      cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DGTSAM_BUILD_TESTS=OFF -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF -DCMAKE_BUILD_TYPE=Release -DGTSAM_BUILD_UNSTABLE=ON -DGTSAM_TANGENT_PREINTEGRATION=OFF .. && \
+      make -j$(nproc) install
+
+# To avoid tzdata asking for geographic location...
+ENV DEBIAN_frontend noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Install OpenCV for Ubuntu 18.04
 RUN apt-get update && apt-get install -y \
@@ -84,12 +91,10 @@ RUN cd Kimera-RPGO && \
 
 ## [Optional] Install Kimera-VIO-Evaluation from PyPI
 RUN apt-get update && \
-    apt-get install software-properties-common -y
-# Get python3
-RUN apt-get update && \
-    add-apt-repository ppa:deadsnakes/ppa
-RUN apt-get update && \
-    apt-get install -y python3.5 python3.5-dev python-pip python3-pip python-tk python3-tk
+      apt-get install software-properties-common -y && \
+      # Get python3
+      add-apt-repository ppa:deadsnakes/ppa && \
+      apt-get install -y python3.5 python3.5-dev python-pip python3-pip python-tk python3-tk
 RUN python3.5 -m pip install PyQt5==5.14
 
 # Install evo-1 for evaluation
@@ -117,14 +122,14 @@ RUN touch /root/.ssh/known_hosts
 RUN ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
 
 # Install glog, gflags
-RUN apt-get update && apt-get install -y libgflags2.2 libgflags-dev libgoogle-glog0v5 libgoogle-glog-dev
+RUN apt-get update && apt-get install -y libgflags2.2 libgflags-dev libgoogle-glog0v5 libgoogle-glog-dev && \
+      wget
 
 # Install Kimera-VIO
 RUN git clone https://github.com/MIT-SPARK/Kimera-VIO.git
 RUN cd Kimera-VIO && mkdir build && cd build && cmake .. && make -j$(nproc)
 
 # Download and extract EuRoC dataset.
-RUN apt-get update && apt-get install -y wget
 RUN wget http://robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/vicon_room1/V1_01_easy/V1_01_easy.zip
 RUN mkdir -p $DIRPATH/euroc && unzip V1_01_easy.zip -d $DIRPATH/euroc
 

@@ -1,0 +1,19 @@
+# Image pulled from https://hub.docker.com/r/celinachild/kimera
+# For ROS image, can consider https://hub.docker.com/r/kopanev/kimera
+FROM celinachild/kimera
+
+# Debug tools
+# RUN apt-get update && apt-get install -y \
+#     iproute2 \
+#     strace
+
+RUN apt-get update && apt-get install -y \
+    x11-xserver-utils
+
+# Copy our code to override theirs
+# Comment this command to run the original version
+COPY . /home/Kimera-VIO
+
+# Default runs it with the script
+# Append /bin/bash at the end of the docker run command to open terminal
+CMD /home/Kimera-VIO/scripts/docker/docker_img_script.sh

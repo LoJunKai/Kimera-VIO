@@ -5,6 +5,7 @@ MAINTAINER Antoni Rosinol "arosinol@mit.edu"
 
 # To avoid tzdata asking for geographic location...
 ENV DEBIAN_frontend noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Set the working directory to /root
 ENV DIRPATH /root
@@ -12,7 +13,9 @@ WORKDIR $DIRPATH
 
 #Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      apt-utils \
+      apt-utils
+
+RUN apt-get update && apt-get install -y \
       git \
       cmake \
       # Install xvfb to provide a display to container for GUI related testing.
@@ -31,12 +34,9 @@ RUN cd gtsam && \
       cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DGTSAM_BUILD_TESTS=OFF -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF -DCMAKE_BUILD_TYPE=Release -DGTSAM_BUILD_UNSTABLE=ON -DGTSAM_TANGENT_PREINTEGRATION=OFF .. && \
       make -j$(nproc) install
 
-# To avoid tzdata asking for geographic location...
-ENV DEBIAN_frontend noninteractive
-ARG DEBIAN_FRONTEND=noninteractive
-
 # Install OpenCV for Ubuntu 18.04
 RUN apt-get update && apt-get install -y \
+# Remove cmake and shift it to 1 package 1 line
       build-essential cmake unzip pkg-config \
       libjpeg-dev libpng-dev libtiff-dev \
       libvtk6-dev \
@@ -52,6 +52,7 @@ RUN git clone https://github.com/opencv/opencv_contrib.git
 RUN cd opencv_contrib && \
       git checkout tags/3.3.1
 
+# This takes very long (1141s)
 RUN cd opencv/build && \
       cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -61,6 +62,7 @@ RUN cd opencv/build && \
       -DOPENCV_EXTRA_MODULES_PATH=$DIRPATH/opencv_contrib/modules .. && \
       make -j$(nproc) install
 
+# This takes even longer (5000s)
 # Install Open_GV
 RUN git clone https://github.com/laurentkneip/opengv
 RUN cd opengv && \
@@ -98,6 +100,10 @@ RUN apt-get update && \
 RUN python3.5 -m pip install PyQt5==5.14
 
 # Install evo-1 for evaluation
+# Shift this up and delete the installation
+# Run those that needs to be compilled first
+RUN apt-get update && apt-get install -y \
+      libffi-dev
 # Hack to avoid Docker's cache when evo-1 master branch is updated.
 ADD https://api.github.com/repos/ToniRV/evo-1/git/refs/heads/master version.json
 RUN git clone https://github.com/ToniRV/evo-1.git
@@ -122,12 +128,20 @@ RUN touch /root/.ssh/known_hosts
 RUN ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
 
 # Install glog, gflags
-RUN apt-get update && apt-get install -y libgflags2.2 libgflags-dev libgoogle-glog0v5 libgoogle-glog-dev && \
+RUN apt-get update && apt-get install -y \
+      libgflags2.2 \
+      libgflags-dev \
+      libgoogle-glog0v5 \
+      libgoogle-glog-dev \
       wget
 
+# This takes a long time
 # Install Kimera-VIO
 RUN git clone https://github.com/MIT-SPARK/Kimera-VIO.git
-RUN cd Kimera-VIO && mkdir build && cd build && cmake .. && make -j$(nproc)
+RUN cd Kimera-VIO && mkdir build && cd build && cmake .. && make
+# RUN cd Kimera-VIO && mkdir build && cd build && cmake .. && make -j$(nproc)
+# Too many processors might cause it to fail by OOMKiller
+# Can do -j$(nproc - 1)
 
 # Download and extract EuRoC dataset.
 RUN wget http://robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/vicon_room1/V1_01_easy/V1_01_easy.zip

@@ -1,0 +1,33 @@
+# Image pulled from https://hub.docker.com/r/lojunkai/kimera_vio
+# For ROS image, can consider https://hub.docker.com/r/kopanev/kimera
+FROM lojunkai/kimera_vio
+
+# Debug tools
+# RUN apt-get update && apt-get install -y \
+#     iproute2 \
+#     strace
+
+RUN apt-get update && apt-get install -y \
+    x11-xserver-utils
+
+WORKDIR /root/Kimera-VIO
+
+# Install Kimera-VIO
+
+# Dev
+COPY ./ ./
+# Deployment
+# RUN git clone https://github.com/LoJunKai/Kimera-VIO.git
+# RUN cd Kimera-VIO && mkdir build && cd build && cmake .. && make -j$(nproc)
+
+# Build Kimera-VIO
+# If has not been built before, run following: mkdir build 
+RUN cd build && \
+    cmake .. && \
+    make -j$(nproc)
+
+# Entrypoint
+# Default runs it with the script
+# Append /bin/bash at the end of the docker run command to open terminal
+CMD scripts/docker/docker_img_script.bash ./
+

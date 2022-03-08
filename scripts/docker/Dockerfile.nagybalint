@@ -1,0 +1,9 @@
+# Image pulled from https://hub.docker.com/r/nagybalint1993/kimera_vio
+FROM nagybalint1993/kimera_vio
+
+RUN apt-get update && apt-get install -y \
+    x11-xserver-utils
+
+# Default runs it with the script
+# Append /bin/bash at the end of the docker run command to open terminal
+CMD /home/Kimera-VIO/scripts/docker/docker_img_script.bash
